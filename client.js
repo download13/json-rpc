@@ -3,6 +3,8 @@
 	var RESPONSE_TIMEOUT = {code: -32603, message: 'Response timeout'}
 
 
+
+
 	// Extend this class to make an RPC client
 	function RPCClient() {
 		this.calls = {}; // Pending calls
@@ -11,14 +13,11 @@
 		this.cull = this.cull.bind(this);
 	}
 
-	// Returns the object to be sent
-	RPCClient.prototype.call = function(to, method, params, cb) {
+	// Creates a JSON-RPC request object
+	RPCClient.prototype.createRequest = function(method, params, cb) {
 		var id = createId();
 
-		this.calls[id] = {
-			to: to,
-			cb: cb
-		};
+		this.calls[id] = cb;
 
 		// Cull after a while
 		setTimeout(this.cull, TIMEOUT, id);
@@ -32,20 +31,23 @@
 	}
 
 	// Subclasses call this when a message comes in
-	RPCClient.prototype.handle = function(response, from) {
+	RPCClient.prototype.handleResponse = function(response) {
 		if(typeof response === 'string') {
 			response = JSON.parse(response);
 		}
 
+		// Filter out requests, we don't handle those
+		if(response.method || response.params) return;
+
 		var id = response.id;
 
-		// Only accept responses from the one you sent the request to
-		var to = this.calls[id];
-		if(to && to !== from) return;
+		// Filter out responses whose ids aren't on file
+		if(!this.call.hasOwnProperty(id)) return;
 
+		var cb = this.calls[id]; // Get and delete callback
 		delete this.calls[id];
 
-		// TODO Get contents response
+		cb();
 	}
 
 	RPCClient.prototype.cull = function(id) {
@@ -65,4 +67,8 @@
 
 		return id;
 	}
+
+	var RPC = {};
+
+	function createRequest(method, params) {}
 })();
