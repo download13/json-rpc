@@ -18,7 +18,7 @@
 		this.cull = this.cull.bind(this);
 		this.abort = this.abort.bind(this);
 
-		this.transport = transport;
+		transport = transport || require('./transports/local');
 
 		transport.onmessage = function(fromId, message) {
 			if(typeof message === 'string') {
@@ -30,6 +30,8 @@
 
 			self.handleResponse(message);
 		}
+
+		this.transport = transport;
 	}
 
 	// Creates a JSON-RPC request object

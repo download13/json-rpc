@@ -8,6 +8,8 @@
 		var self = this;
 		this.procs = {};
 
+		transport = transport || require('./transports/local');
+
 		transport.onmessage = function(fromId, message) {
 			if(typeof message === 'string') {
 				try {
