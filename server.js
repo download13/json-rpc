@@ -3,24 +3,33 @@
 	var PARSE_ERROR = {code: -32700, message: 'Parse error'};
 
 
-	// Extend this class to make a server
-	function RPCServer() {
+	// Transport is a type described in transports/local.js
+	function RPCServer(transport) {
+		var self = this;
 		this.procs = {};
+
+		transport.onmessage = function(fromId, message) {
+			if(typeof message === 'string') {
+				try {
+					message = JSON.parse(message);
+				} catch(e) {
+					cb(wrap(null, PARSE_ERROR));
+					return;
+				}
+			}
+
+			if(!message.method) return; // Only handle requests
+
+			self._handleRequest(message, function(response) {
+				transport.send(fromId, response);
+			});
+		}
 	}
 
 	// Subclasses call this to handle an RPC request
 	// Takes a request object (or JSON string) and callback
 	// callback will be called with a response object
-	RPCServer.prototype.handleCall = function(request, cb) {
-		if(typeof request === 'string') {
-			try {
-				request = JSON.parse(request);
-			} catch(e) {
-				cb(wrap(null, PARSE_ERROR));
-				return;
-			}
-		}
-
+	RPCServer.prototype._handleRequest = function(request, cb) {
 		var method = request.method;
 		var params = request.params;
 		var id = request.id;
@@ -74,5 +83,9 @@
 	}
 
 
-	this.RPCServer = RPCServer;
+	try {
+		module.exports = RPCServer;
+	} catch(e) {
+		this.RPCServer = RPCServer;
+	}
 })();
